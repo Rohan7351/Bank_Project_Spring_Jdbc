@@ -33,5 +33,4 @@ delete from Users where userId=2;
 select * from Transactions;
 delete from Transactions where transactionId=1;
 
-insert into Users(userId, userName, userPassword, userEmail, balance) values(123, "Shobhit Yadav", "shobhit@123", "shobhit@email.com", 37000);
 insert into Users(userName, userPassword, userEmail, balance) values("Rohan Rana", "rohan@123", "rohan@email.com", 42000);
