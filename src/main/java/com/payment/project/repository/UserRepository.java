@@ -11,16 +11,17 @@ import java.util.Random;
 
 import com.payment.project.entities.Transaction;
 import com.payment.project.entities.User;
+import com.payment.project.services.UserService;
 
 
 
-public class UserRepository {
+public class UserRepository implements UserService {
 private Connection con;
 
-
+    
 	public UserRepository() {
 		try {
-			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/wallet_db", "root", "Root123$");
+			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/bank_db", "root", "root");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -36,7 +37,26 @@ private Connection con;
 			st.setInt(1, userId);
 			ResultSet rs=st.executeQuery();
 			if(rs.next()) {
-				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getDouble(5));
+				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7), rs.getString(8), rs.getDouble(9));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return user;
+	}
+
+
+	
+	public User getUserByUpi(String upiId) {
+		User user=null;
+		
+		try {
+			String query="Select * from Users where userUpi=?";
+			PreparedStatement st=con.prepareStatement(query);
+			st.setString(1, upiId);
+			ResultSet rs=st.executeQuery();
+			if(rs.next()) {
+				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7), rs.getString(8), rs.getDouble(9));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -44,36 +64,70 @@ private Connection con;
 		return user;
 	}
 	
-	public void addUser(String userName, String userPassword, String userEmail) {
+	
+	public User getUserByAccountNo(String accountNumber) {
+		User user=null;
+		
 		try {
-			int userId = generateRandomId();
-			String query="insert into Users( userName, userPassword, userEmail, userId) values(? , ?, ?, ?)";
+			String query="Select * from Users where userAccountNo=?";
 			PreparedStatement st=con.prepareStatement(query);
-			st.setString(1, userName);
-			st.setString(2, userPassword);
-			st.setString(3, userEmail);
-			st.setInt(4, userId);
-			st.executeUpdate();
-			System.out.println("User created with USER ID : "+userId);
+			st.setString(1, accountNumber);
+			ResultSet rs=st.executeQuery();
+			if(rs.next()) {
+				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7), rs.getString(8), rs.getDouble(9));
+			}
 		} catch (SQLException e) {
-			System.out.println("Error creating the user  !Please try again ");
+			e.printStackTrace();
+		}
+		return user;
+	}
+	
+	public void addUser(String userName, String userPassword, String userEmail,String userNumber) {
+		try {
+			String random = generateRandomId(6).toString();
+			
+			String upiId = userNumber + "@bank";
+			String accountNo = random;
+			String userPin = generateRandomId(4).toString();
+			
+			String query="INSERT INTO Users (userUpi, userAccountNo, userName, userPassword, userPin, userEmail, userNumber) VALUES (?, ?, ?, ?, ?, ?, ?)";
+			PreparedStatement st=con.prepareStatement(query);
+			    st.setString(1, upiId);
+	            st.setString(2, accountNo);
+	            st.setString(3, userName);
+	            st.setString(4, userPassword);
+	            st.setString(5, userPin);
+	            st.setString(6, userEmail);
+	            st.setString(7, userNumber);
+	          		
+			st.executeUpdate();
+			 
+			System.out.println("Account Created Successfully...!!\n");
+			System.out.println("***User Details*** \n ");
+			System.out.println("User UPI Id : "+upiId);
+			System.out.println("Your Account No is : "+accountNo);
+			System.out.println("Your pin is : "+userPin+"\n");
+		} catch (SQLException e) {
+			System.out.println("Error creating the user  !Please try again \n ");
 			e.printStackTrace();
 		}
 	}
 	
 	
-	public User authenticateUser(String userName, String userPassword) {
+	public User authenticateUser(String userNumber, String userPassword) {
 		User user=null;
 		
 		try {
-			String query="Select * from Users where userName=? AND userPassword=?";
+			String query="Select * from Users where userNumber=? AND userPassword=?";
 			PreparedStatement st=con.prepareStatement(query);
-			st.setString(1, userName);
+			st.setString(1, userNumber);
 			st.setString(2, userPassword);
 			ResultSet rs=st.executeQuery();
+			
 			if(rs.next()) {
-				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getDouble(5));
+				
 				System.out.println("User is authenticated..!!");
+				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7),rs.getString(8),rs.getDouble(9));
 			} else {
 				System.out.println("No data found in database");
 			}
@@ -94,6 +148,19 @@ private Connection con;
 			e.printStackTrace();
 		}
 	}
+
+	public void changeUserPin(User user,String pin) {
+		try {
+			String query="update Users set userPin=? where userId=?";
+			PreparedStatement st=con.prepareStatement(query);
+			st.setString(1,pin );
+			st.setInt(2, user.getUserId());
+			st.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
 	
 	public void addTransaction(Transaction transaction) {
 		try {
@@ -128,13 +195,16 @@ private Connection con;
 		return transactions;
 	}
 	
-	public Integer generateRandomId() {
+	public Integer generateRandomId(int n) {
 		
-	Random random = new Random();
-		int min = 1000;
-		int max = 9999;
+	    Random random = new Random();
+		int min = (int) Math.pow(10,n-1);   // let 1000
+		int max = (int)(Math.pow(10,n)-1);  // let 9999 == 10000-1
 		int num = random.nextInt((max-min)+1)+min;
 		return num;
 	}
+
+
+	
 
 }
