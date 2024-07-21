@@ -104,14 +104,19 @@ public class App
 			System.out.println("!! You have entered a wrong PIN . Please fill correct one. \n" );
 			return;
 		}
+		else if(!newPin.equals(newPinCheck) ){
+			System.out.println("!! PIN is not matching . Please try again...\n");
+			return;
+		}
+		else if(oldPin.equals(newPinCheck)) {
+			System.out.println("!! Your new PIN can't be same as your previous PIN. Please Try a different one \n");
+			return;
 
-
-		if(newPin.equals(newPinCheck)){
-			userRepo.changeUserPin(currentUser,newPin);
-			System.out.println("PIN changed successfully.... \n");
 		}
 		else{
-			System.out.println("!! PIN is not matching . Please try again...\n");
+			userRepo.changeUserPin(currentUser,newPin);
+			System.out.println("PIN changed successfully.... \n");
+			return;
 		}
 
 
@@ -178,7 +183,8 @@ public class App
 		transaction.setTransactionType("Deposit");
 		
 		userRepo.addTransaction(transaction);
-		System.out.println("Money Deposited Successfully..!!");
+		System.out.println("\nMoney Deposited Successfully..!!");
+		System.out.println("Updated Balance : "+currentUser.getBalance()+"\n");
 	}
 	
 	public void withdrawMoney() {
@@ -213,7 +219,8 @@ public class App
 		transaction.setTransactionType("Withdraw");
 		
 		userRepo.addTransaction(transaction);
-		System.out.println("\n Money Withdrawl Successfull..!! \n");
+		System.out.println("\n Money Withdrawl Successfull..!!");
+		System.out.println("Updated Balance : "+currentUser.getBalance()+"\n");
 	}
 	
 	private void fundTransfer() {
@@ -262,7 +269,7 @@ public class App
             		User recipientUser=userRepo.getUserByUpi(recipientUpiId);
 		     		transferMoneyToUser(recipientUser, amount);
             		if(recipientUser!=null)
-            		System.out.println("Money transferred Sucessfully...!");
+            		System.out.println("Money transferred Successfully...!");
             		exit = true;
             		
                     break;
@@ -330,7 +337,7 @@ public class App
 		Transaction recipientTransaction=new Transaction();
 		recipientTransaction.setUserId(recipientUser.getUserId());
 		recipientTransaction.setAmount(amount);
-		recipientTransaction.setTransactionType("Received from user "+currentUser.getUserId());
+		recipientTransaction.setTransactionType("Received from user "+currentUser.getUpiId());
 		userRepo.addTransaction(recipientTransaction);
 	}
 	
