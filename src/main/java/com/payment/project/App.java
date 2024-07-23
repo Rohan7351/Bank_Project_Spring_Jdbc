@@ -3,9 +3,16 @@ package com.payment.project;
 import java.util.List;
 import java.util.Scanner;
 
+import javax.sql.DataSource;
+
 import com.payment.project.entities.Transaction;
 import com.payment.project.entities.User;
 import com.payment.project.repository.UserRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 public class App
 {
@@ -114,6 +121,7 @@ public class App
 
 		}
 		else{
+			currentUser.setUserPin(newPinCheck);
 			userRepo.changeUserPin(currentUser,newPin);
 			System.out.println("PIN changed successfully.... \n");
 			return;
@@ -348,10 +356,16 @@ public class App
 			return;
 		}
 		List<Transaction> transactions=userRepo.getTransactionHistory(currentUser.getUserId());
+		if(transactions.size()==0) {
+			System.out.println("No Transaction Found..\n");
+			return;
+		}
+		
+		
 		System.out.println("Transaction History : ");
 		
 		for(Transaction t:transactions) {
-			System.out.println(t.getTransTimestamp()+" -- "+t.getTransactionType()+": "+t.getAmount());
+			System.out.println(t.getTransTimestamp()+" -- "+t.getTransactionType()+" : "+t.getAmount());
 		}
 	}
 	
@@ -360,6 +374,8 @@ public class App
     public static void main( String[] args )
     {
     	App app=new App();
+		
+    	ApplicationContext context = new ClassPathXmlApplicationContext("context.xml");
     	System.out.println("*********  Welcome to Payment Management System  *********      \n");
     	app.showMenu();        
         

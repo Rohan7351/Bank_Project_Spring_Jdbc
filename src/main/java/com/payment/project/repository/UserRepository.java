@@ -2,9 +2,9 @@ package com.payment.project.repository;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -12,165 +12,112 @@ import java.util.Random;
 import com.payment.project.entities.Transaction;
 import com.payment.project.entities.User;
 import com.payment.project.services.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
 
-
+@Component
 public class UserRepository implements UserService {
-private Connection con;
+    private  static  JdbcTemplate jdbcTemplate;
+	private  DataSource dataSource;
 
-    
-	public UserRepository() {
-		try {
-			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/bank_db", "root", "root");
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+	@Autowired
+	public void setDataSource(DataSource dataSource) {	
+		jdbcTemplate = new JdbcTemplate(dataSource);
 	}
-	
-	
-	public User getUser(int userId) {
-		User user=null;
+
+
+
+	public UserRepository() {
 		
-		try {
+	}
+
+
+	public User getUser(int userId) {
+		
 			String query="Select * from Users where userId=?";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setInt(1, userId);
-			ResultSet rs=st.executeQuery();
-			if(rs.next()) {
-				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7), rs.getString(8), rs.getDouble(9));
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return user;
+			
+			return jdbcTemplate.queryForObject(query, new UserRowMapper(), userId);
+
 	}
 
 
 	
 	public User getUserByUpi(String upiId) {
-		User user=null;
 		
-		try {
-			String query="Select * from Users where userUpi=?";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setString(1, upiId);
-			ResultSet rs=st.executeQuery();
-			if(rs.next()) {
-				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7), rs.getString(8), rs.getDouble(9));
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return user;
+		String query="Select * from Users where userUpi=?";
+			
+			 return jdbcTemplate.queryForObject(query, new UserRowMapper(), upiId);
+		
 	}
 	
 	
 	public User getUserByAccountNo(String accountNumber) {
-		User user=null;
-		
-		try {
+	
 			String query="Select * from Users where userAccountNo=?";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setString(1, accountNumber);
-			ResultSet rs=st.executeQuery();
-			if(rs.next()) {
-				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7), rs.getString(8), rs.getDouble(9));
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return user;
+			return jdbcTemplate.queryForObject(query, new UserRowMapper(), accountNumber);
+
 	}
 	
 	public void addUser(String userName, String userPassword, String userEmail,String userNumber) {
-		try {
-			String random = generateRandomId(6).toString();
-			
-			String upiId = userNumber + "@bank";
-			String accountNo = random;
-			String userPin = generateRandomId(4).toString();
-			
-			String query="INSERT INTO Users (userUpi, userAccountNo, userName, userPassword, userPin, userEmail, userNumber) VALUES (?, ?, ?, ?, ?, ?, ?)";
-			PreparedStatement st=con.prepareStatement(query);
-			    st.setString(1, upiId);
-	            st.setString(2, accountNo);
-	            st.setString(3, userName);
-	            st.setString(4, userPassword);
-	            st.setString(5, userPin);
-	            st.setString(6, userEmail);
-	            st.setString(7, userNumber);
-	          		
-			st.executeUpdate();
-			 
-			System.out.println("Account Created Successfully...!!\n");
-			System.out.println("***User Details*** \n ");
-			System.out.println("User UPI Id : "+upiId);
-			System.out.println("Your Account No is : "+accountNo);
-			System.out.println("Your pin is : "+userPin+"\n");
-		} catch (SQLException e) {
-			System.out.println("Error creating the user  !Please try again \n ");
-			e.printStackTrace();
-		}
-	}
-	
+		
+//		ApplicationContext context = new ClassPathXmlApplicationContext("context.xml");
+        String random = generateRandomId(6).toString();
+        String upiId = userNumber + "@bank";
+        String accountNo = random;
+        String userPin = generateRandomId(4).toString();
+
+        String query="INSERT INTO Users (userUpi, userAccountNo, userName, userPassword, userPin, userEmail, userNumber) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        jdbcTemplate.update(query,upiId,accountNo,userName,userPassword,userPin,userEmail,userNumber);
+
+        System.out.println("Account Created Successfully...!!\n");
+        System.out.println("***User Details*** \n ");
+        System.out.println("User UPI Id : "+upiId);
+        System.out.println("Your Account No is : "+accountNo);
+        System.out.println("Your pin is : "+userPin+"\n");
+    }
+
 	
 	public User authenticateUser(String userNumber, String userPassword) {
-		User user=null;
-		
-		try {
+	
 			String query="Select * from Users where userNumber=? AND userPassword=?";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setString(1, userNumber);
-			st.setString(2, userPassword);
-			ResultSet rs=st.executeQuery();
-			
-			if(rs.next()) {
-				
+			User user = null;
+			try {
+				user = jdbcTemplate.queryForObject(query, new UserRowMapper(), userNumber,userPassword );
 				System.out.println("User is authenticated..!!");
-				user=new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),rs.getString(6),rs.getString(7),rs.getString(8),rs.getDouble(9));
-			} else {
-				System.out.println("No data found in database");
+			} catch (Exception e) {
+				// TODO: handle exception
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return user;
+			
+			return user;
 	}
 	
 	public void updateUserBalance(int userId, double newBalance) {
-		try {
-			String query="update Users set balance=? where userId=?";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setDouble(1, newBalance);
-			st.setInt(2, userId);
-			st.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		String query="update Users set balance=? where userId=?";
+//	
+		jdbcTemplate.update(query, newBalance,userId );
 	}
 
 	public void changeUserPin(User user,String pin) {
-		try {
-			String query="update Users set userPin=? where userId=?";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setString(1,pin );
-			st.setInt(2, user.getUserId());
-			st.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		String query="update Users set userPin=? where userId=?";
+
+		jdbcTemplate.update(query, pin, user.getUserId());
+		
 	}
 
 	
 	public void addTransaction(Transaction transaction) {
 		try {
 			String query="insert into Transactions(userId, amount, transactionType) values(?, ?, ?)";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setInt(1, transaction.getUserId());
-			st.setDouble(2, transaction.getAmount());
-			st.setString(3, transaction.getTransactionType());
-			st.executeUpdate();
-		} catch (SQLException e) {
+			jdbcTemplate.update(query, transaction.getUserId(), transaction.getAmount(),transaction.getTransactionType());
+
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -179,20 +126,11 @@ private Connection con;
 	public List<Transaction> getTransactionHistory(int userId){
 		List<Transaction> transactions=new ArrayList<>();
 		
-		try {
 			String query="select * from Transactions where userId=? order by transTimestamp desc";
-			PreparedStatement st=con.prepareStatement(query);
-			st.setInt(1, userId);
-			ResultSet rs=st.executeQuery();
-			while(rs.next()) {
-				Transaction transaction=new Transaction(rs.getInt(1), rs.getInt(2), rs.getDouble(3), rs.getString(4), rs.getTimestamp(5));
-				transactions.add(transaction);
-			}
 			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return transactions;
+			return jdbcTemplate.query(query, new TransactionRowMapper(), userId);
+			  
+	
 	}
 	
 	public Integer generateRandomId(int n) {
@@ -207,4 +145,35 @@ private Connection con;
 
 	
 
+}
+
+class UserRowMapper implements RowMapper<User> {
+    @Override
+    public User mapRow(ResultSet rs, int rowNum) throws SQLException {
+//    	int userId, String upiId, String accountNo, String userName, String userPassword, String userPin,String userEmail, String userNumber, double balance
+        User user = new User(rs.getInt("userId"),rs.getString("userUpi"),
+        		rs.getString("userAccountNo"),
+        		rs.getString("userName"),
+        		rs.getString("userPassword"),
+        		rs.getString("userPin"),
+        		rs.getString("userEmail"),
+                rs.getString("userNumber"),
+                rs.getDouble("balance"));
+        
+        return user;
+    }
+}
+
+class TransactionRowMapper implements RowMapper<Transaction> {
+    @Override
+    public Transaction mapRow(ResultSet rs, int rowNum) throws SQLException {
+//  int transactionId, int userId, double amount, String transactionType, Timestamp transTimestamp
+        Transaction transaction = new Transaction( rs.getInt("transactionId"),
+        	       rs.getInt("userId"),
+        	       rs.getDouble("amount"),
+        	       rs.getString("transactionType"),
+        	       rs.getTimestamp("transTimestamp"));
+      
+        return transaction;
+    }
 }
